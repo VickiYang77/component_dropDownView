@@ -7,11 +7,27 @@
 
 import UIKit
 
+enum menuTypeSection {
+    case first
+}
+
 class DropDownMenuView: UIView {
     var titleDataSource: [String] = []
     var selectedIndex: Int = 0 {
         didSet {
-            collectionView.reloadData()
+            // 改變標題文字顏色
+            if oldValue != selectedIndex {
+                var snapshot = collectionViewDataSource.snapshot()
+                if let selectedCell = collectionView.cellForItem(at: IndexPath(row: selectedIndex, section: 0)) as? DropDownMenuCell,
+                   let oldCell = collectionView.cellForItem(at: IndexPath(row: oldValue, section: 0)) as? DropDownMenuCell{
+                    selectedCell.isCellSelected = true
+                    oldCell.isCellSelected = false
+                    let selectedCellTitle = snapshot.itemIdentifiers[selectedIndex]
+                    let oldCellTitle = snapshot.itemIdentifiers[oldValue]
+                    snapshot.reloadItems([oldCellTitle, selectedCellTitle])
+                    collectionViewDataSource.apply(snapshot)
+                }
+            }
         }
     }
     var rowCellCount: Int = 3
@@ -35,14 +51,16 @@ class DropDownMenuView: UIView {
         cv.bounces = false
         cv.backgroundColor = .clear
         cv.translatesAutoresizingMaskIntoConstraints = false
-        cv.dataSource = self
         cv.delegate = self
         cv.register(DropDownMenuCell.self, forCellWithReuseIdentifier: DropDownMenuCell.identifier)
         return cv
     }()
     
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    lazy var collectionViewDataSource = makeDataSource()
+    
+    init(titles: [String]) {
+        super.init(frame: .zero)
+        self.titleDataSource = titles
         setupUI()
     }
     
@@ -52,7 +70,10 @@ class DropDownMenuView: UIView {
     
     func setupUI() {
         setupConstraint()
-        collectionView.reloadData()
+        
+        //set up collectionView
+        collectionView.dataSource = collectionViewDataSource
+        applySnapshot()
     }
     
     private func setupConstraint() {
@@ -67,25 +88,8 @@ class DropDownMenuView: UIView {
     }
 }
 
-
 // MARK: - CollectionView Delegate
-extension DropDownMenuView: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return titleDataSource.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: DropDownMenuCell.identifier, for: indexPath) as? DropDownMenuCell else {
-            return UICollectionViewCell()
-        }
-        
-        if indexPath.row < titleDataSource.count {
-            cell.titleLabel.text = titleDataSource[indexPath.row]
-            cell.isCellSelected = (indexPath.row == selectedIndex)
-        }
-        return cell
-    }
-    
+extension DropDownMenuView: UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard indexPath.row < titleDataSource.count else { return }
         didSelectItemHandler?(indexPath)
@@ -94,5 +98,24 @@ extension DropDownMenuView: UICollectionViewDelegate, UICollectionViewDataSource
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let cellWidth = floor(collectionView.bounds.width / CGFloat(rowCellCount))
         return CGSize(width: cellWidth, height: cellHeight)
+    }
+}
+
+// MARK: - CollectionView DiffableDataSource
+extension DropDownMenuView {
+    private func makeDataSource() -> UICollectionViewDiffableDataSource<menuTypeSection, String> {
+        UICollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, itemIdentifiers in
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: DropDownMenuCell.identifier, for: indexPath) as! DropDownMenuCell
+            cell.titleLabel.text = itemIdentifiers
+            cell.isCellSelected = (indexPath.row == self?.selectedIndex)
+            return cell
+        }
+    }
+    
+    private func applySnapshot() {
+        var snapshot = NSDiffableDataSourceSnapshot<menuTypeSection, String>()
+        snapshot.appendSections([.first])
+        snapshot.appendItems(self.titleDataSource, toSection: .first)
+        collectionViewDataSource.apply(snapshot, animatingDifferences: true)
     }
 }

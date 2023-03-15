@@ -43,8 +43,7 @@ class NavBarMenuContainerView: UIView {
     }
     
     lazy var dropDownMenuView: DropDownMenuView = {
-        let view = DropDownMenuView()
-        view.titleDataSource = self.titleDataSource
+        let view = DropDownMenuView(titles: self.titleDataSource)
         view.selectedIndex = self.selectedIndex
         view.cellHeight = self.dropDownMenuCellHeight
         view.dropDownMenuBackgroundColor = self.dropDownMenuBackgroundColor

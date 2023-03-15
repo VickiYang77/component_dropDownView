@@ -16,6 +16,11 @@ class ViewController: UIViewController {
     @IBOutlet weak var navbarView: NavBarMenuView!
     @IBOutlet weak var homePageBtn: UIButton!
     
+    lazy var navbarView2: NavBarMenuView = {
+        let view = NavBarMenuView(titles: self.titles, sourceView: self.view)
+        return view
+    }()
+    
     var containerGroupView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -27,6 +32,12 @@ class ViewController: UIViewController {
         setupUI()
         binding()
         navbarView.selectedIndex = 0
+        navbarView2.selectedIndex = 0
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.navigationController?.navigationBar.backgroundColor = .clear
     }
     
     private func setupUI() {
@@ -38,6 +49,9 @@ class ViewController: UIViewController {
             containerGroupView.leftAnchor.constraint(equalTo: view.leftAnchor),
             containerGroupView.rightAnchor.constraint(equalTo: view.rightAnchor)
         ])
+        
+        self.navigationItem.titleView = navbarView2
+        navbarView2.backgroundColor = .lightGray
     }
     
     private func binding() {
@@ -46,6 +60,15 @@ class ViewController: UIViewController {
         navbarView.changeMenuHandler = { [weak self] index in
             guard let self = self else { return }
 
+            self.hideContainerController(vc: self.selectedViewController)
+            let vc = self.viewControllers[index]
+            self.selectedViewController = vc
+            self.showContainerController(vc: vc)
+        }
+        
+        navbarView2.changeMenuHandler = { [weak self] index in
+            guard let self = self else { return }
+            
             self.hideContainerController(vc: self.selectedViewController)
             let vc = self.viewControllers[index]
             self.selectedViewController = vc

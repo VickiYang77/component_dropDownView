@@ -11,6 +11,7 @@ class NavBarMenuView: UIView {
     var sourceView: UIView?
     var titleDataSource: [String] = [] {
         didSet {
+            containerView.titleDataSource = titleDataSource
             selectedIndex = 0
         }
     }

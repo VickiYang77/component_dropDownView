@@ -7,6 +7,11 @@
 
 import UIKit
 
+struct DropDownMenuCellModel: Hashable {
+    var title: String
+    var isCellSelected: Bool
+}
+
 class DropDownMenuCell: UICollectionViewCell {
     static let identifier = "DropDownMenuCell"
     

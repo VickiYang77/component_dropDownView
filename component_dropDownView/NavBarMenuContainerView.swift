@@ -10,7 +10,7 @@ import UIKit
 class NavBarMenuContainerView: UIView {
     var titleDataSource: [String] = [] {
         didSet {
-            dropDownMenuView.titleDataSource = titleDataSource
+            dropDownMenuView.titles = titleDataSource
             selectedIndex = 0
         }
     }

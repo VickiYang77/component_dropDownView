@@ -12,21 +12,22 @@ enum menuTypeSection {
 }
 
 class DropDownMenuView: UIView {
-    var titleDataSource: [String] = []
+    lazy var titles: [String] = [] {
+        didSet {
+            titleModelDataSource = titles.map{ DropDownMenuCellModel(title: $0, isCellSelected: false) }
+            applySnapshot()
+        }
+    }
+    private var titleModelDataSource: [DropDownMenuCellModel] = []
     var selectedIndex: Int = 0 {
         didSet {
             // 改變標題文字顏色
-            if oldValue != selectedIndex {
-                var snapshot = collectionViewDataSource.snapshot()
-                if let selectedCell = collectionView.cellForItem(at: IndexPath(row: selectedIndex, section: 0)) as? DropDownMenuCell,
-                   let oldCell = collectionView.cellForItem(at: IndexPath(row: oldValue, section: 0)) as? DropDownMenuCell{
-                    selectedCell.isCellSelected = true
-                    oldCell.isCellSelected = false
-                    let selectedCellTitle = snapshot.itemIdentifiers[selectedIndex]
-                    let oldCellTitle = snapshot.itemIdentifiers[oldValue]
-                    snapshot.reloadItems([oldCellTitle, selectedCellTitle])
-                    collectionViewDataSource.apply(snapshot)
+            if titleModelDataSource.count > selectedIndex {
+                titleModelDataSource[selectedIndex].isCellSelected = true
+                if oldValue != selectedIndex, titleModelDataSource.count > oldValue {
+                    titleModelDataSource[oldValue].isCellSelected = false
                 }
+                applySnapshot()
             }
         }
     }
@@ -60,7 +61,7 @@ class DropDownMenuView: UIView {
     
     init(titles: [String]) {
         super.init(frame: .zero)
-        self.titleDataSource = titles
+        self.titles = titles
         setupUI()
     }
     
@@ -73,7 +74,6 @@ class DropDownMenuView: UIView {
         
         //set up collectionView
         collectionView.dataSource = collectionViewDataSource
-        applySnapshot()
     }
     
     private func setupConstraint() {
@@ -91,7 +91,7 @@ class DropDownMenuView: UIView {
 // MARK: - CollectionView Delegate
 extension DropDownMenuView: UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard indexPath.row < titleDataSource.count else { return }
+        guard indexPath.row < titleModelDataSource.count else { return }
         didSelectItemHandler?(indexPath)
     }
     
@@ -103,19 +103,19 @@ extension DropDownMenuView: UICollectionViewDelegate, UICollectionViewDelegateFl
 
 // MARK: - CollectionView DiffableDataSource
 extension DropDownMenuView {
-    private func makeDataSource() -> UICollectionViewDiffableDataSource<menuTypeSection, String> {
-        UICollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, itemIdentifiers in
+    private func makeDataSource() -> UICollectionViewDiffableDataSource<menuTypeSection, DropDownMenuCellModel> {
+        UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: DropDownMenuCell.identifier, for: indexPath) as! DropDownMenuCell
-            cell.titleLabel.text = itemIdentifiers
-            cell.isCellSelected = (indexPath.row == self?.selectedIndex)
+            cell.titleLabel.text = item.title
+            cell.isCellSelected = item.isCellSelected
             return cell
         }
     }
     
     private func applySnapshot() {
-        var snapshot = NSDiffableDataSourceSnapshot<menuTypeSection, String>()
+        var snapshot = NSDiffableDataSourceSnapshot<menuTypeSection, DropDownMenuCellModel>()
         snapshot.appendSections([.first])
-        snapshot.appendItems(self.titleDataSource, toSection: .first)
+        snapshot.appendItems(self.titleModelDataSource, toSection: .first)
         collectionViewDataSource.apply(snapshot, animatingDifferences: true)
     }
 }
